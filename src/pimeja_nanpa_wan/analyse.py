@@ -23,10 +23,17 @@ CSV_PATH = ROOT / "flag_colour_percentages.csv"
 CACHE = DATA / "analysis_cache"
 # This is intentionally a moderate image rather than a screenshot.  The source
 # SVG is rendered by librsvg, then ImageMagick emits an exact colour histogram.
-RENDER_SIZE = (1200, 800)
+RENDER_WIDTH = 1200
 HISTOGRAM_LINE = re.compile(r"\s*(\d+): \((\d+),(\d+),(\d+)(?:,(\d+))?\)")
 SVG_HEX_COLOUR = re.compile(r"(?<![\w-])#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})(?![\w-])")
+SVG_NAMED_COLOUR = re.compile(r"(?:fill|stroke|stop-color)\s*(?:=|:)\s*[\"']?([A-Za-z]+)", re.IGNORECASE)
 MINIMUM_COLOUR_PIXELS = 12
+ANALYSIS_VERSION = 3
+SVG_NAMED_FAMILIES = {
+    "black": "black", "white": "white", "silver": "white", "grey": "black", "gray": "black",
+    "red": "red", "blue": "blue", "green": "green", "yellow": "yellow", "gold": "yellow",
+    "orange": "orange", "purple": "purple", "brown": "brown",
+}
 
 
 def named_colour(red: int, green: int, blue: int) -> str:
@@ -53,19 +60,32 @@ def named_colour(red: int, green: int, blue: int) -> str:
 
 
 def svg_colour_families(svg_path: Path) -> set[str]:
-    """Identify colour families explicitly present in an SVG's paint values."""
-    families = set()
-    for value in SVG_HEX_COLOUR.findall(svg_path.read_text(errors="ignore")):
+    """Identify colour families present in SVG paint values.
+
+    SVG's initial value for the ``fill`` property is black. It therefore belongs
+    in every allow-list even when no element spells it out, as on Germany's and
+    Estonia's black stripes.
+    """
+    families = {"black"}
+    svg = svg_path.read_text(errors="ignore")
+    for value in SVG_HEX_COLOUR.findall(svg):
         if len(value) == 3:
             value = "".join(part * 2 for part in value)
         families.add(named_colour(*(int(value[index : index + 2], 16) for index in (0, 2, 4))))
+    for value in SVG_NAMED_COLOUR.findall(svg):
+        family = SVG_NAMED_FAMILIES.get(value.lower())
+        if family:
+            families.add(family)
     return families
 
 
 def percentages(svg_path: Path) -> dict[str, float]:
     """Rasterise and classify substantial non-transparent RGB colour groups."""
     rendered = subprocess.run(
-        ["rsvg-convert", "--width", str(RENDER_SIZE[0]), "--height", str(RENDER_SIZE[1]), str(svg_path)],
+        # Supplying a width but no height makes librsvg calculate the height
+        # from each flag's intrinsic SVG dimensions/viewBox. No 3:2 canvas is
+        # imposed, and no flag is cropped or stretched.
+        ["rsvg-convert", "--width", str(RENDER_WIDTH), str(svg_path)],
         check=True,
         capture_output=True,
     ).stdout
@@ -147,10 +167,12 @@ def main() -> None:
 
     def analyse_one(index: int, country: dict[str, str]) -> None:
         cache_path = CACHE / f"{country['iso3']}.json"
-        if not cache_path.exists():
+        cached = json.loads(cache_path.read_text()) if cache_path.exists() else {}
+        if cached.get("_analysis_version") != ANALYSIS_VERSION:
             result = percentages(ASSETS / country["flag"])
             row = {"country": country["name"], "iso2": country["iso2"], "iso3": country["iso3"]}
             row.update({colour: f"{value:.4f}" for colour, value in result.items()})
+            row["_analysis_version"] = ANALYSIS_VERSION
             cache_path.write_text(json.dumps(row) + "\n")
         print(f"[{index:3}/193] {country['iso3']}", flush=True)
 
@@ -170,7 +192,9 @@ def main() -> None:
         raise RuntimeError(f"Cannot finalize: {len(missing)} cached rows missing (e.g. {missing[:5]})")
     rows: list[dict[str, str]] = []
     for country in manifest:
-        rows.append(json.loads((CACHE / f"{country['iso3']}.json").read_text()))
+        row = json.loads((CACHE / f"{country['iso3']}.json").read_text())
+        row.pop("_analysis_version", None)
+        rows.append(row)
     with CSV_PATH.open("w", newline="") as output:
         writer = csv.DictWriter(output, fieldnames=["country", "iso2", "iso3", *COLOURS])
         writer.writeheader()

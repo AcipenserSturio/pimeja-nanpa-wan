@@ -22,3 +22,4 @@ distribution = true
 download-flag-sources = "pimeja_nanpa_wan.download_sources:main"
 analyse-flags = "pimeja_nanpa_wan.analyse:main"
 render-map-preview = "pimeja_nanpa_wan.preview:main"
+compare-flag-analyses = "pimeja_nanpa_wan.compare:main"
