@@ -1,0 +1,24 @@
+[project]
+name = "pimeja-nanpa-wan"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "AcipenserSturio",email = "AcipenserSturio@users.noreply.github.com"},
+]
+dependencies = []
+requires-python = ">=3.14"
+readme = "README.md"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+
+[tool.pdm]
+distribution = true
+
+[project.scripts]
+download-flag-sources = "pimeja_nanpa_wan.download_sources:main"
+analyse-flags = "pimeja_nanpa_wan.analyse:main"
+render-map-preview = "pimeja_nanpa_wan.preview:main"
