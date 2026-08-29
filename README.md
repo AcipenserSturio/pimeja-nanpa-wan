@@ -50,4 +50,7 @@ are included in that source-paint inspection. Transparent pixels outside a flag'
 shape are ignored.
 
 Each map is an equirectangular SVG. Member states run from white (0%) to the named
-map colour (100%); non-members remain white but retain their boundary outline.
+map colour (100%). The white map instead runs from a muted blue-grey (0%) to white
+(100%) against a slightly deeper muted-blue ocean, so its scale remains legible;
+non-members retain
+their boundary outline and use neutral light grey rather than a data colour.
