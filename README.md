@@ -46,7 +46,7 @@ treated as distinct. Grey is folded into black or white because it is not a dist
 heraldic flag colour.
 
 Flags are rasterised at **1200 pixels wide** by librsvg (available on the development
-machine; it and ImageMagick are the only system prerequisites). Height is deliberately
+machine; it and ImageMagick 6 or 7 are the only system prerequisites). Height is deliberately
 omitted, so librsvg calculates it from the source SVG's intrinsic dimensions or
 `viewBox`; every flag retains its own aspect ratio, with no crop or stretch. RGB is classified by HSV colour family,
 which keeps shades of a heraldic colour together. Tiny histogram clusters (fewer

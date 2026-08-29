@@ -6,6 +6,7 @@ import colorsys
 import csv
 import json
 import re
+import shutil
 import subprocess
 from argparse import ArgumentParser
 from collections import Counter
@@ -48,6 +49,14 @@ SVG_NAMED_FAMILIES = {
     "purple": "purple",
     "brown": "brown",
 }
+
+
+def imagemagick() -> str:
+    """Return the ImageMagick 7 or 6 executable available on this machine."""
+    executable = shutil.which("magick") or shutil.which("convert")
+    if executable is None:
+        raise RuntimeError("ImageMagick is required: install ImageMagick 7 ('magick') or 6 ('convert')")
+    return executable
 
 
 def named_colour(red: int, green: int, blue: int) -> str:
@@ -113,7 +122,7 @@ def percentages(svg_path: Path) -> dict[str, float]:
         capture_output=True,
     ).stdout
     histogram = subprocess.run(
-        ["magick", "png:-", "-format", "%c", "histogram:info:-"],
+        [imagemagick(), "png:-", "-format", "%c", "histogram:info:-"],
         input=rendered,
         check=True,
         capture_output=True,
