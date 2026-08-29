@@ -1,0 +1,50 @@
+name: Publish latest flag-colour atlas
+
+on:
+  push:
+    branches: [main]
+
+# A single mutable release is maintained. Runs are serialized so an older build
+# cannot overwrite the release after a newer push has started publishing.
+concurrency:
+  group: publish-latest-flag-colour-atlas
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install rendering tools and PDM
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes librsvg2-bin imagemagick
+          python -m pip install --upgrade pdm
+
+      - name: Build atlas
+        run: |
+          pdm install --frozen-lockfile
+          pdm run download-flag-sources
+          pdm run analyse-flags
+          pdm run package-release --version latest
+
+      - name: Replace latest release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git tag --force latest "$GITHUB_SHA"
+          git push --force origin refs/tags/latest
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest --title "Latest flag-colour atlas" --notes "Generated from $GITHUB_SHA." --prerelease
+          else
+            gh release create latest --title "Latest flag-colour atlas" --notes "Generated from $GITHUB_SHA." --prerelease
+          fi
+          gh release upload latest dist/* --clobber

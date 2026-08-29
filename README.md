@@ -23,6 +23,14 @@ point.
 For a local visual check, `pdm run render-map-preview red` renders a PNG preview
 to `/tmp/flag-colour-map-preview.png`.
 
+## Continuous publishing
+
+Every push to `main` rebuilds the atlas in GitHub Actions and replaces the assets of
+the single pre-release tagged `latest`. It publishes `flag-colour-atlas-latest.zip`
+and its SHA-256 checksum. The ZIP contains the CSV, all map SVGs, and the flag-source
+manifest; one archive keeps this related, versioned dataset coherent and avoids a
+release page crowded with separate map downloads.
+
 The first command script (which invokes the standard `curl` utility) downloads FlagCDN SVGs for a fixed, reviewed list of the
 193 full UN-member ISO codes into `assets/`, plus a boundary GeoJSON from the open
 `datasets/geo-countries` repository. The second script writes
